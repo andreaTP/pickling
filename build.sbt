@@ -58,23 +58,36 @@ def noPublish = Seq(
 
 // Use root project
 lazy val root: Project = (project in file(".")).
-  aggregate(core, benchmark, sandbox, sandboxTests, macroTests).
+  aggregate(coreJVM, benchmark, sandbox, sandboxTests, macroTests).
   settings(commonSettings ++ noPublish: _*).
   settings(
     name := "Scala Pickling",
     run in Compile := (run in (sandbox, Compile)).evaluated
   )
 
+
+lazy val testUtil = (crossProject in file("test-util")).
+  settings(commonSettings ++ noPublish: _*)
+
+lazy val testUtilJVM = testUtil.jvm
+lazy val testUtilJS = testUtil.js
+
 /** Scala Pickling code */
-lazy val core: Project = (project in file("core")).
+lazy val core = (crossProject in file("core")).
   dependsOn(testUtil % "test->test").
   settings(commonSettings: _*).
   settings(
-    name := "scala-pickling",
+    name := "scala-pickling"
+  ).
+  settings(
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value // for ToolBox  
+    )
+  ).
+  jvmSettings(
     libraryDependencies ++= {
       val baseDeps = Seq(
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        "org.scala-lang" % "scala-compiler" % scalaVersion.value, // for ToolBox 
         scalaTest % Test,
         scalaCheck % Test
       )
@@ -88,10 +101,20 @@ lazy val core: Project = (project in file("core")).
       }
       baseDeps ++ additional
     }
+  ).
+  jsSettings(
+    scalacOptions in (Test, compile) ++= Seq("-Xmax-classfile-name", "254"),
+    libraryDependencies ++= Seq(
+      "org.scalatest" %%% "scalatest" % "3.0.0-M15" % Test,
+      "org.scalacheck" %%% "scalacheck" % "1.12.5" % Test
+    )
   )
 
+lazy val coreJVM = core.jvm
+lazy val coreJS = core.js
+
 lazy val macroTests: Project = (project in file("macro-test")).
-  dependsOn(core).
+  dependsOn(coreJVM).
   settings(commonSettings:_*).settings(noPublish:_*).
   settings(
     libraryDependencies ++= {
@@ -112,11 +135,8 @@ lazy val macroTests: Project = (project in file("macro-test")).
     }
   )
 
-lazy val testUtil: Project = (project in file("test-util")).
-  settings(commonSettings ++ noPublish: _*)
-
 lazy val sandbox: Project = (project in file("sandbox")).
-  dependsOn(core).
+  dependsOn(coreJVM).
   settings(commonSettings ++ noPublish: _*).
   settings(
     sourceDirectory in Test := baseDirectory.value,
@@ -129,7 +149,7 @@ lazy val sandbox: Project = (project in file("sandbox")).
 /* This submodule is meant to store tests that need to be executed
  * independently from the main test suite placed in `core`. */
 lazy val sandboxTests: Project = (project in file("sandbox-test")).
-  dependsOn(core).
+  dependsOn(coreJVM).
   settings(commonSettings ++ noPublish: _*).
   settings(
     libraryDependencies ++= Seq(
@@ -140,7 +160,7 @@ lazy val sandboxTests: Project = (project in file("sandbox-test")).
   )
 
 lazy val benchmark: Project = (project in file("benchmark")).
-  dependsOn(core).
+  dependsOn(coreJVM).
   settings(commonSettings ++ noPublish ++ benchmarkSettings: _*).
   settings(
     scalacOptions ++= Seq("-optimise"),

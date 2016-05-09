@@ -60,9 +60,14 @@ object NegativeCompilation {
     }
   }
 
+  def crossProjectRelPath = {
+    if (Platform.executingOnJVM) "jvm"
+    else "js"
+  }
+
   def toolboxClasspath = {
-    val f0 = new java.io.File(s"core/target/scala-${scalaBinaryVersion}/classes")
-    val f1 = new java.io.File(s"test-util/target/scala-${scalaBinaryVersion}/test-classes")
+    val f0 = new java.io.File(s"core/${crossProjectRelPath}/target/scala-${scalaBinaryVersion}/classes")
+    val f1 = new java.io.File(s"test-util/${crossProjectRelPath}/target/scala-${scalaBinaryVersion}/test-classes")
     val fs = Vector(f0, f1)
     fs foreach { f => if (!f.exists) sys.error(s"output directory ${f.getAbsolutePath} does not exist.") }
     val sep = sys.props("file.separator")
