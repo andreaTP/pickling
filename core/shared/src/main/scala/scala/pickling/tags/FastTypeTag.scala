@@ -85,7 +85,8 @@ object FastTypeTag {
 
   // TODO - can we just leave a cache like this around?  It was in 0.10.x + prior, but
   // perhaps there are better mechanisms to solve this cache issue.
-  private val typeFromStringCache = scala.collection.concurrent.TrieMap[String, ru.Type]()
+  private val typeFromStringCache = //scala.collection.concurrent.TrieMap[String, ru.Type]()
+    /*PRONPICKLING*/scala.collection.mutable.Map[String, ru.Type]()
   def reflectType[T](mirror: ru.Mirror, tag: FastTypeTag[T]): ru.Type = {
     def calculate: ru.Type = {
       val typename = tag.typeConstructor
